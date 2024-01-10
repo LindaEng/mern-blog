@@ -32,7 +32,7 @@ const getUserById = async (req, res, next) => {
     }
 }
 
-//CREATE
+//CREATE - Sign up
 const signUpUser = async (req, res, next) => {
     try {
         console.log("REQ BODY ",req.body);
@@ -55,9 +55,35 @@ const signUpUser = async (req, res, next) => {
 
     } catch (error) {
         console.log(error)
+        next(error)
         return res.status(500).json({message: "Error in creating User"})
     }
 }
+
+//CREATE - Login
+const login = async (req, res, next) => {
+    try {
+        const {email, password} = req.body
+        const existingUser = await User.findOne({email})
+
+        if(!existingUser) {
+            return res.status(404).json({message: "User not found"})
+        }
+
+        const isPasswordCorrect = bcrypt.compareSync(password, existingUser.password)
+
+        if(!isPasswordCorrect) {
+            return res.status(402).json({message: "password incorrect"})
+        } 
+
+        return res.status(200).json({message: `Successfully logged in! Welcome back ${existingUser.name}`})
+    } catch (error) {
+        console.log(error);
+        next(error)
+        return res.status(500).json({message: "Error in creating User"})
+    }
+}
+
 
 //UPDATE
 
@@ -67,5 +93,6 @@ const signUpUser = async (req, res, next) => {
 module.exports = {
     getAllUsers,
     getUserById,
-    signUpUser
+    signUpUser,
+    login
 }
