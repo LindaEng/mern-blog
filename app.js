@@ -6,6 +6,7 @@ const userRoutes = require("./routes/user-routes")
 require("dotenv").config()
 const MONGO_URL=process.env.MONGO_URL
 
+app.use(express.json())
 app.use("/api/users", userRoutes)
 
 mongoose.connect(MONGO_URL).then(() => {
