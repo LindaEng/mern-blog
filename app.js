@@ -1,13 +1,12 @@
 const express = require("express")
 const app = express()
 const mongoose = require("mongoose")
+const userRoutes = require("./routes/user-routes")
 
 require("dotenv").config()
 const MONGO_URL=process.env.MONGO_URL
 
-app.use("/api", (req, res, next) => {
-    res.send("Hello World")
-})
+app.use("/api/users", userRoutes)
 
 mongoose.connect(MONGO_URL).then(() => {
     app.listen(3000, () => {
