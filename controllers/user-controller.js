@@ -48,7 +48,8 @@ const signUpUser = async (req, res, next) => {
         const newUser = {
             name,
             email,
-            password: hashedPassword
+            password: hashedPassword,
+            blogs: []
         }
         await User.create(newUser)
         res.status(200).json({message: "User has been created!"})

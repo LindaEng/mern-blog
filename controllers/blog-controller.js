@@ -1,5 +1,6 @@
 const Blog = require("../models/Blog")
-
+const User = require("../models/User")
+const mongoose = require("mongoose")
 
 const getAllBlogs = async (req, res, next) => {
     try {
@@ -31,17 +32,36 @@ const getBlogById = async (req, res, next) => {
 }
 
 const createBlog = async (req, res, next) => {
+    const session = await mongoose.startSession()
+    session.startTransaction()
+
     try {
         const {title, description, image, user} = req.body
+        const existingUser = await User.findById(user)
+
+        if(!existingUser){
+            await session.abortTransaction()
+            return res.status(400).json({ message: "User not found"})
+        }
+
         const newBlog = await Blog.create({
             title,
             description,
             image,
             user
         })
+
+        await newBlog.save({ session })
+        existingUser.blogs.push(newBlog)
+        await existingUser.save({ session })
+
+        await session.commitTransaction()
+        session.endSession()
         res.status(200).json({newBlog})
+
     } catch (error) {
         console.log(error)
+        await session.abortTransaction()
         next(error)
         return res.status(500).json({message: "cannot create blog"})
     }
@@ -68,7 +88,9 @@ const updateBlog = async (req, res, next) => {
 const deleteBlog = async (req, res, next) => {
     try {
         const { id } = req.params
-        await Blog.findByIdAndDelete(id)
+        let blog = await Blog.findByIdAndDelete(id).populate("user")
+        await blog.user.blogs.pull(blog)
+        await blog.user.save()
         res.status(200).json({message: "blog successfully deleted"})
     } catch (error) {
         console.log(error)
@@ -77,9 +99,25 @@ const deleteBlog = async (req, res, next) => {
     }
 }
 
+const getBlogsByUserId = async (req, res, next) => {
+    try {
+        const { id } = req.params
+        const userBlogs = await User.findById(id).populate("blogs")
+        if(userBlogs.length === 0) {
+           return res.status(404).json({message: "No Blogs Found"})
+        }
+        return res.status(200).json({userBlogs: userBlogs})
+    } catch (error) {
+        console.log(error)
+        next(error)
+        return res.status(500).json({message: "cannot retrieve user blogs"})
+    }
+}
+
 module.exports = {
     getAllBlogs,
     getBlogById,
+    getBlogsByUserId,
     createBlog,
     updateBlog,
     deleteBlog
